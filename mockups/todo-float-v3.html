@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo Float Mockup v3</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --panel: rgba(44, 44, 44, 0.82);
+      --panel-soft: rgba(255, 255, 255, 0.055);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.58);
+      --quiet: rgba(255, 255, 255, 0.36);
+      --accent: #8ab4f8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: #111;
+    }
+
+    .float {
+      width: 300px;
+      max-height: 470px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 17px;
+      background: var(--panel);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(28px) saturate(1.15);
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 17px 17px 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .date {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .count {
+      min-width: 32px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: var(--accent);
+      background: rgba(138, 180, 248, 0.13);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .content {
+      min-height: 0;
+      overflow: auto;
+      padding: 0 15px 10px;
+      scrollbar-width: thin;
+    }
+
+    .section-title {
+      margin: 7px 0 9px;
+      color: var(--quiet);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    ol {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: todo;
+    }
+
+    li {
+      counter-increment: todo;
+      display: grid;
+      grid-template-columns: 23px 1fr;
+      gap: 8px;
+      align-items: start;
+      min-height: 34px;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-soft);
+    }
+
+    li::before {
+      content: counter(todo);
+      width: 19px;
+      height: 19px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .todo-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 11px 0;
+      background: var(--line);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 11px 15px 15px;
+      border-top: 1px solid var(--line);
+    }
+
+    button {
+      height: 32px;
+      border-radius: 9px;
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .ghost {
+      color: rgba(255, 255, 255, 0.74);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .primary {
+      color: #111;
+      border: 0;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 0 11px;
+      font-weight: 650;
+    }
+
+    .hint {
+      margin: 10px 0 0;
+      color: var(--quiet);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main class="float">
+    <header class="top">
+      <div>
+        <h1>今天要做</h1>
+        <div class="date">5月19日 周二</div>
+      </div>
+      <div class="count">3</div>
+    </header>
+
+    <section class="content">
+      <div class="section-title">列表</div>
+      <ol>
+        <li><span class="todo-text">拿文件</span></li>
+        <li><span class="todo-text">找凯莉</span></li>
+        <li><span class="todo-text">处理一个比较长的事项时优先换行，宽度保持在 300px 左右</span></li>
+      </ol>
+      <div class="divider"></div>
+      <p class="hint">新增今天事项后，下次开机仍会弹出；没有新增则当天不重复打扰。</p>
+    </section>
+
+    <footer class="actions">
+      <button class="ghost">今天不再弹出</button>
+      <button class="primary">添加</button>
+    </footer>
+  </main>
+</body>
+</html>

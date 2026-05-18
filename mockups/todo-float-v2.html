@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo Float Mockup v2</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --text: #1f2328;
+      --muted: #6b7280;
+      --line: rgba(31, 35, 40, 0.1);
+      --glass: rgba(250, 252, 255, 0.76);
+      --accent: #2563eb;
+      --shadow: 0 22px 64px rgba(16, 24, 40, 0.2), 0 2px 8px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background:
+        linear-gradient(135deg, rgba(214, 228, 248, 0.72), rgba(249, 251, 253, 0.68) 44%, rgba(236, 246, 241, 0.72)),
+        radial-gradient(circle at 80% 10%, rgba(255,255,255,0.82), transparent 34%);
+    }
+
+    .stage {
+      display: grid;
+      gap: 22px;
+      justify-items: center;
+    }
+
+    .caption {
+      width: min(560px, 100%);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .window {
+      width: clamp(300px, 32vw, 480px);
+      border: 1px solid rgba(255, 255, 255, 0.68);
+      background: var(--glass);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(28px) saturate(1.22);
+    }
+
+    .titlebar {
+      height: 40px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 0 9px 0 13px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .appname {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #344054;
+    }
+
+    .mark {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #2563eb, #50b4f2);
+    }
+
+    .controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .control {
+      width: 26px;
+      height: 24px;
+      border: 0;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.38);
+      color: #475467;
+      font-size: 13px;
+    }
+
+    .body {
+      padding: 17px;
+    }
+
+    .header-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      line-height: 1.16;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .date {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .count {
+      min-width: 42px;
+      padding: 7px 8px;
+      border-radius: 11px;
+      color: #174ea6;
+      background: rgba(37, 99, 235, 0.11);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .todos {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .todo {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 9px;
+      align-items: start;
+      min-height: 42px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .index {
+      width: 20px;
+      height: 20px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: #475467;
+      background: rgba(255,255,255,0.62);
+      border: 1px solid rgba(31,35,40,0.08);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .todo-title {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 560;
+    }
+
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding-top: 14px;
+    }
+
+    button {
+      height: 34px;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .ghost {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.46);
+      color: #344054;
+      padding: 0 10px;
+    }
+
+    .primary {
+      border: 0;
+      background: #202124;
+      color: white;
+      padding: 0 12px;
+      font-weight: 600;
+    }
+
+    .note {
+      margin: 13px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="caption">
+      <h1>Todo 浮窗方向 v2</h1>
+      <p class="subtitle">基准宽度 300px，内容较长时最多扩到 480px；事项是纯清单，不做完成勾选。</p>
+    </div>
+
+    <article class="window">
+      <div class="titlebar">
+        <div class="appname"><span class="mark"></span><span>Today</span></div>
+        <div class="controls">
+          <button class="control" aria-label="minimize">-</button>
+          <button class="control" aria-label="close">x</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="header-row">
+          <div>
+            <h2>今天要做</h2>
+            <div class="date">5月19日 周二</div>
+          </div>
+          <div class="count">2</div>
+        </div>
+
+        <ul class="todos">
+          <li class="todo">
+            <span class="index">1</span>
+            <span class="todo-title">拿文件</span>
+          </li>
+          <li class="todo">
+            <span class="index">2</span>
+            <span class="todo-title">找凯莉</span>
+          </li>
+          <li class="todo">
+            <span class="index">3</span>
+            <span class="todo-title">给很长很长的事项文本预留换行空间，窗口不立刻变宽</span>
+          </li>
+        </ul>
+
+        <div class="footer">
+          <button class="ghost">今天不再弹出</button>
+          <button class="primary">添加</button>
+        </div>
+
+        <p class="note">新增今天事项后，下次开机仍会弹出；否则当天不重复打扰。</p>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

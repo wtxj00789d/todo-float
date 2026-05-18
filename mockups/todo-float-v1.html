@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo Float Mockup</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --text: #202124;
+      --muted: #667085;
+      --line: rgba(32, 33, 36, 0.1);
+      --glass: rgba(250, 252, 255, 0.74);
+      --glass-strong: rgba(255, 255, 255, 0.86);
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --green: #108a49;
+      --shadow: 0 24px 70px rgba(16, 24, 40, 0.2), 0 2px 10px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(210, 227, 252, 0.6), rgba(245, 248, 252, 0.5) 42%, rgba(237, 246, 239, 0.54)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M0 78h160M78 0v160' stroke='%23ffffff' stroke-opacity='.38'/%3E%3C/svg%3E");
+      display: grid;
+      place-items: center;
+      padding: 38px;
+    }
+
+    .stage {
+      width: min(1120px, 100%);
+    }
+
+    .topline {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.48);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #344054;
+      backdrop-filter: blur(20px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap: 28px;
+      align-items: start;
+    }
+
+    .window {
+      border: 1px solid rgba(255, 255, 255, 0.66);
+      background: var(--glass);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(28px) saturate(1.25);
+    }
+
+    .titlebar {
+      height: 42px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 0 12px 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .appname {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #344054;
+      font-weight: 600;
+    }
+
+    .mark {
+      width: 16px;
+      height: 16px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #2563eb, #42a5f5);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.36);
+    }
+
+    .controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .control {
+      width: 28px;
+      height: 24px;
+      border: 0;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.38);
+      color: #475467;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .body {
+      padding: 22px;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 5px;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .date {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .count {
+      min-width: 54px;
+      padding: 8px 10px;
+      border-radius: 13px;
+      background: var(--accent-soft);
+      color: #174ea6;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .todos {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .todo {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1.6px solid #98a2b3;
+      background: rgba(255,255,255,0.68);
+    }
+
+    .todo-title {
+      font-size: 15px;
+      font-weight: 560;
+    }
+
+    .tag {
+      font-size: 12px;
+      color: #475467;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 18px;
+    }
+
+    .ghost {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.44);
+      border-radius: 10px;
+      color: #344054;
+      height: 36px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    .primary {
+      border: 0;
+      background: #202124;
+      color: white;
+      border-radius: 10px;
+      height: 36px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .composer {
+      display: grid;
+      gap: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 98px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      outline: none;
+      padding: 14px;
+      color: var(--text);
+      background: rgba(255,255,255,0.62);
+      font: inherit;
+      line-height: 1.5;
+    }
+
+    .preview {
+      border: 1px solid rgba(16, 138, 73, 0.22);
+      background: rgba(234, 249, 241, 0.64);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 650;
+      margin-bottom: 10px;
+    }
+
+    .preview-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .small-field {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.56);
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: #344054;
+      font-size: 13px;
+    }
+
+    .note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 820px) {
+      body {
+        padding: 20px;
+      }
+
+      .topline {
+        display: block;
+      }
+
+      .pill {
+        display: inline-flex;
+        margin-top: 12px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="topline">
+      <div>
+        <h1>Todo 浮窗方向 v1</h1>
+        <p class="subtitle">克制、轻量、开机当天有事项才出现；视觉参考 Win11 毛玻璃与 Codex 浮窗感。</p>
+      </div>
+      <div class="pill">建议窗口宽度 420-480px，可停留桌面</div>
+    </div>
+
+    <section class="grid" aria-label="Todo app visual mockups">
+      <article class="window">
+        <div class="titlebar">
+          <div class="appname"><span class="mark"></span><span>Today</span></div>
+          <div class="controls">
+            <button class="control" aria-label="minimize">-</button>
+            <button class="control" aria-label="close">x</button>
+          </div>
+        </div>
+        <div class="body">
+          <div class="header-row">
+            <div>
+              <h2>今天要做</h2>
+              <div class="date">2026年5月19日，星期二</div>
+            </div>
+            <div class="count">2项</div>
+          </div>
+
+          <ul class="todos">
+            <li class="todo">
+              <span class="check"></span>
+              <span class="todo-title">拿文件</span>
+              <span class="tag">今天</span>
+            </li>
+            <li class="todo">
+              <span class="check"></span>
+              <span class="todo-title">找凯莉</span>
+              <span class="tag">今天</span>
+            </li>
+          </ul>
+
+          <div class="footer">
+            <button class="ghost">今天不再弹出</button>
+            <button class="primary">添加事项</button>
+          </div>
+
+          <p class="note">开机弹出后自动记录；如果稍后新增了今天事项，下次开机仍可再弹出。</p>
+        </div>
+      </article>
+
+      <article class="window">
+        <div class="titlebar">
+          <div class="appname"><span class="mark"></span><span>Add Todo</span></div>
+          <div class="controls">
+            <button class="control" aria-label="minimize">-</button>
+            <button class="control" aria-label="close">x</button>
+          </div>
+        </div>
+        <div class="body">
+          <div class="header-row">
+            <div>
+              <h2>添加提醒</h2>
+              <div class="date">自然语言输入，保存前确认</div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <textarea>明天记得提醒我要去拿文件和找凯莉</textarea>
+            <div class="preview">
+              <div class="preview-head">
+                <span>解析预览</span>
+                <span>明天</span>
+              </div>
+              <ol class="preview-list">
+                <li>拿文件</li>
+                <li>找凯莉</li>
+              </ol>
+            </div>
+            <div class="field-row">
+              <div class="small-field">日期：2026-05-19　时间：暂不设置</div>
+              <button class="primary">确认保存</button>
+            </div>
+          </div>
+
+          <p class="note">第一版按日期级 todo 工作；数据结构保留可选时间字段，后续可扩展排序或准点提醒。</p>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
