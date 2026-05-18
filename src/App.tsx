@@ -4,8 +4,8 @@ export default function App() {
       <section className="float-panel">
         <header className="panel-header">
           <div>
-            <h1>浠婂ぉ瑕佸仛</h1>
-            <p>鍔犺浇涓?</p>
+            <h1>今天要做</h1>
+            <p>加载中</p>
           </div>
         </header>
       </section>
