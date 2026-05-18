@@ -338,8 +338,8 @@ Write `src-tauri/tauri.conf.json`:
   "version": "0.1.0",
   "identifier": "local.todo-float",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm.cmd run dev",
+    "beforeBuildCommand": "npm.cmd run build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
@@ -374,7 +374,7 @@ Write `src-tauri/capabilities/default.json`:
 Run:
 
 ```powershell
-npm install
+npm.cmd install
 ```
 
 Expected: `package-lock.json` is created and npm exits with code 0.
@@ -384,7 +384,7 @@ Expected: `package-lock.json` is created and npm exits with code 0.
 Run:
 
 ```powershell
-npm run build
+npm.cmd run build
 ```
 
 Expected: TypeScript and Vite build complete without errors.
@@ -558,7 +558,7 @@ Expected: Rust compiles and reports `test result: ok`.
 Run:
 
 ```powershell
-npm run build
+npm.cmd run build
 ```
 
 Expected: TypeScript build passes.
@@ -1931,7 +1931,7 @@ pub fn run() {
 Run:
 
 ```powershell
-npm run build
+npm.cmd run build
 cd src-tauri
 cargo test
 ```
@@ -2252,7 +2252,7 @@ export default function App() {
 Run:
 
 ```powershell
-npm run build
+npm.cmd run build
 ```
 
 Expected: TypeScript and Vite build pass.
@@ -2323,7 +2323,7 @@ describe("App", () => {
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: test fails because `TodoList` is not rendering todo titles.
@@ -2483,7 +2483,7 @@ Append to `src/styles.css`:
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: App test passes.
@@ -2545,7 +2545,7 @@ it("parses and saves a preview entry", async () => {
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: add-flow test fails because the Add button and form do not exist.
@@ -2831,8 +2831,8 @@ input {
 Run:
 
 ```powershell
-npm test
-npm run build
+npm.cmd test
+npm.cmd run build
 ```
 
 Expected: tests and build pass.
@@ -2872,7 +2872,7 @@ it("can suppress today's popup", async () => {
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: suppress test fails because the button does not exist.
@@ -2929,7 +2929,7 @@ if (!open) {
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: suppress test passes.
@@ -2953,7 +2953,7 @@ git commit -m "feat: add suppress today action"
 Run:
 
 ```powershell
-npm test
+npm.cmd test
 ```
 
 Expected: all Vitest tests pass.
@@ -2974,7 +2974,7 @@ Expected: all Rust tests pass.
 Run:
 
 ```powershell
-npm run build
+npm.cmd run build
 ```
 
 Expected: TypeScript and Vite build pass.
@@ -2984,7 +2984,7 @@ Expected: TypeScript and Vite build pass.
 Run:
 
 ```powershell
-npm run tauri build
+npm.cmd run tauri build
 ```
 
 Expected: Tauri build completes and creates a Windows bundle or executable under `src-tauri/target/release`.
@@ -3001,7 +3001,7 @@ $env:TODO_FLOAT_CONFIG = (Resolve-Path .\config.toml)
 Run:
 
 ```powershell
-npm run tauri dev
+npm.cmd run tauri dev
 ```
 
 Expected: the 300 px float opens. Clicking `添加`, entering text, and clicking `解析` shows a clear config-file message because `api_key = ""`.
