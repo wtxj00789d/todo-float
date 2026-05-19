@@ -88,6 +88,21 @@ fn suppress_today() -> Result<(), String> {
     db::record_popup(&conn, date, max_created_at, true).map_err(|err| err.to_string())
 }
 
+fn run_startup_check(app: &tauri::AppHandle) -> Result<(), String> {
+    let date = today();
+    let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
+    let todos = db::active_todos_for_date(&conn, date).map_err(|err| err.to_string())?;
+    let snapshot = db::latest_popup_snapshot(&conn, date).map_err(|err| err.to_string())?;
+
+    if startup::should_show_popup(&todos, snapshot) {
+        let max_created_at = todos.iter().map(|todo| todo.created_at.as_str()).max();
+        window::open_main_window(app).map_err(|err| err.to_string())?;
+        db::record_popup(&conn, date, max_created_at, false).map_err(|err| err.to_string())?;
+    }
+
+    Ok(())
+}
+
 fn database_path() -> Result<PathBuf, String> {
     if let Ok(path) = std::env::var("TODO_FLOAT_DB") {
         return Ok(PathBuf::from(path));
@@ -119,8 +134,11 @@ pub fn run() {
         ])
         .setup(|app| {
             let is_startup_check = std::env::args().any(|arg| arg == "--startup-check");
-            if !is_startup_check {
-                window::open_main_window(app.handle())?;
+            let handle = app.handle();
+            if is_startup_check {
+                let _ = run_startup_check(handle);
+            } else {
+                window::open_main_window(handle)?;
             }
 
             Ok(())
