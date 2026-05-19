@@ -3,6 +3,7 @@ mod date_rules;
 mod db;
 mod llm;
 mod models;
+mod parser;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
