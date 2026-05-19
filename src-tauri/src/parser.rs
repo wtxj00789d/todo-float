@@ -99,12 +99,29 @@ fn resolve_unambiguous_source(
 }
 
 fn local_date_expression_count(source_text: &str, base: NaiveDate) -> usize {
-    source_text
-        .split(|ch| matches!(ch, '，' | '、' | '；' | ';' | ',' | '\n' | '\r'))
-        .map(str::trim)
-        .filter(|clause| !clause.is_empty())
+    split_date_clauses(source_text)
+        .into_iter()
         .filter(|clause| resolve_date(clause, base).is_some())
         .count()
+}
+
+fn split_date_clauses(source_text: &str) -> Vec<&str> {
+    let mut clauses = vec![source_text];
+    for connector in ["还有", "另外", "顺便", "并且"] {
+        clauses = clauses
+            .into_iter()
+            .flat_map(|clause| clause.split(connector))
+            .collect();
+    }
+
+    clauses
+        .into_iter()
+        .flat_map(|clause| {
+            clause.split(|ch| matches!(ch, '，' | '、' | '；' | ';' | ',' | '\n' | '\r'))
+        })
+        .map(str::trim)
+        .filter(|clause| !clause.is_empty())
+        .collect()
 }
 
 fn week_start(base: NaiveDate) -> NaiveDate {
@@ -201,6 +218,23 @@ mod tests {
         let entries = vec![entry];
 
         let entries = apply_local_overrides(entries, "明天买菜，下周二提交材料", base());
+
+        assert_eq!(
+            entries[0].due_date,
+            NaiveDate::from_ymd_opt(2026, 5, 27).unwrap()
+        );
+        assert_eq!(entries[0].date_expression, None);
+        assert_eq!(entries[0].date_source, DateSource::Llm);
+        assert_eq!(entries[0].warning.as_deref(), Some("LLM warning"));
+    }
+
+    #[test]
+    fn apply_local_overrides_does_not_use_connector_multi_date_source_without_expression() {
+        let mut entry = preview_entry(None, Some("LLM warning"));
+        entry.due_date = NaiveDate::from_ymd_opt(2026, 5, 27).unwrap();
+        let entries = vec![entry];
+
+        let entries = apply_local_overrides(entries, "明天买菜还有下周二提交材料", base());
 
         assert_eq!(
             entries[0].due_date,
