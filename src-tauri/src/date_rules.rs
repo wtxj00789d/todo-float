@@ -59,7 +59,8 @@ pub fn resolve_date(input: &str, base: NaiveDate) -> Option<DateResolution> {
 
     if text.contains("下周末") || text.contains("下星期末") || text.contains("下礼拜末")
     {
-        let date = week_start(base) + Duration::days(12);
+        let days_after_week_start = if names_sunday(text) { 13 } else { 12 };
+        let date = week_start(base) + Duration::days(days_after_week_start);
         return Some(DateResolution {
             date,
             expression: "下周末".to_string(),
@@ -157,6 +158,12 @@ fn parse_weekday_expression(text: &str) -> Option<(i32, Weekday, String)> {
     }
 
     None
+}
+
+fn names_sunday(text: &str) -> bool {
+    ["周日", "周天", "星期日", "星期天", "礼拜日", "礼拜天"]
+        .iter()
+        .any(|expr| text.contains(expr))
 }
 
 fn parse_next_month_day(text: &str) -> Option<u32> {
@@ -324,6 +331,18 @@ mod tests {
         assert_eq!(
             resolve_date("下周末约朋友吃饭", base()).unwrap().date,
             NaiveDate::from_ymd_opt(2026, 5, 30).unwrap()
+        );
+    }
+
+    #[test]
+    fn resolves_next_weekend_explicit_sunday() {
+        assert_eq!(
+            resolve_date("下周末周日约朋友吃饭", base()).unwrap().date,
+            NaiveDate::from_ymd_opt(2026, 5, 31).unwrap()
+        );
+        assert_eq!(
+            resolve_date("下周末星期日约朋友吃饭", base()).unwrap().date,
+            NaiveDate::from_ymd_opt(2026, 5, 31).unwrap()
         );
     }
 
