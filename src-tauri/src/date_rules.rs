@@ -191,7 +191,7 @@ fn parse_next_month_day(text: &str) -> Option<u32> {
 }
 
 fn parse_month_day(text: &str) -> Option<(u32, u32, String)> {
-    for month in 1..=12 {
+    for month in (1..=12).rev() {
         for day in 1..=31 {
             let a = format!("{month}月{day}号");
             let b = format!("{month}月{day}日");
@@ -315,6 +315,14 @@ mod tests {
         assert_eq!(
             resolve_date("6月1号看活动", base()).unwrap().date,
             NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
+        );
+        assert_eq!(
+            resolve_date("11月1号提醒我交材料", base()).unwrap().date,
+            NaiveDate::from_ymd_opt(2026, 11, 1).unwrap()
+        );
+        assert_eq!(
+            resolve_date("12月3号提醒我续费", base()).unwrap().date,
+            NaiveDate::from_ymd_opt(2026, 12, 3).unwrap()
         );
     }
 
