@@ -36,12 +36,15 @@ pub fn load_config_from(path: &Path) -> Result<AppConfig, String> {
     let text = std::fs::read_to_string(path)
         .map_err(|err| format!("无法读取配置文件 {}: {}", path.display(), err))?;
     toml::from_str::<AppConfig>(&text)
-        .map_err(|err| format!("配置文件格式错误 {}: {}", path.display(), err))
+        .map_err(|_| format!("配置文件格式错误 {}", path.display()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn loads_toml_config() {
@@ -85,5 +88,71 @@ mod tests {
 
         let config = load_config_from(&path).unwrap();
         assert_eq!(config.llm.api_key, "");
+    }
+
+    #[test]
+    fn config_path_uses_env_override() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let _env = ConfigEnvGuard::new();
+        let override_path = PathBuf::from(r"C:\todo-float\custom-config.toml");
+        std::env::set_var("TODO_FLOAT_CONFIG", &override_path);
+
+        let path = config_path().unwrap();
+
+        assert_eq!(path, override_path);
+    }
+
+    #[test]
+    fn default_config_path_is_absolute_config_toml() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let _env = ConfigEnvGuard::new();
+        std::env::remove_var("TODO_FLOAT_CONFIG");
+
+        let path = config_path().unwrap();
+
+        assert_eq!(path.file_name().unwrap(), "config.toml");
+        assert!(path.is_absolute());
+    }
+
+    #[test]
+    fn parse_errors_do_not_include_secret_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        std::fs::write(
+            &path,
+            r#"
+            [llm]
+            provider = "openrouter"
+            api_key = "SECRET_SHOULD_NOT_LEAK
+            model = "z-ai/glm-4.5-air"
+            "#,
+        )
+        .unwrap();
+
+        let err = load_config_from(&path).unwrap_err();
+        assert!(err.contains(&path.display().to_string()));
+        assert!(!err.contains("SECRET_SHOULD_NOT_LEAK"));
+        assert!(!err.contains("api_key"));
+    }
+
+    struct ConfigEnvGuard {
+        previous: Option<std::ffi::OsString>,
+    }
+
+    impl ConfigEnvGuard {
+        fn new() -> Self {
+            Self {
+                previous: std::env::var_os("TODO_FLOAT_CONFIG"),
+            }
+        }
+    }
+
+    impl Drop for ConfigEnvGuard {
+        fn drop(&mut self) {
+            match &self.previous {
+                Some(value) => std::env::set_var("TODO_FLOAT_CONFIG", value),
+                None => std::env::remove_var("TODO_FLOAT_CONFIG"),
+            }
+        }
     }
 }
