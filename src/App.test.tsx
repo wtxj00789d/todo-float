@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { getAppState } from "./api";
@@ -12,6 +12,14 @@ vi.mock("./api", () => ({
 const getAppStateMock = vi.mocked(getAppState);
 
 describe("App", () => {
+  beforeEach(() => {
+    getAppStateMock.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders today's todo title and count", async () => {
     const state: AppState = {
       today: "2026-05-19",
@@ -38,5 +46,22 @@ describe("App", () => {
 
     expect(await screen.findByText("拿文件")).toBeInTheDocument();
     expect(document.querySelector(".count")).toHaveTextContent("1");
+  });
+
+  it("does not show the empty state before loading resolves", async () => {
+    let resolveState: (state: AppState) => void = () => {};
+    const statePromise = new Promise<AppState>((resolve) => {
+      resolveState = resolve;
+    });
+    getAppStateMock.mockReturnValueOnce(statePromise);
+
+    render(<App />);
+
+    expect(screen.queryByText("今天没有事项")).not.toBeInTheDocument();
+    expect(document.querySelector(".loading")).toHaveTextContent("加载中...");
+
+    resolveState({ today: "2026-05-19", todos: [] });
+
+    expect(await screen.findByText("今天没有事项")).toBeInTheDocument();
   });
 });

@@ -46,7 +46,11 @@ export default function App() {
           <span className="count">{todos.length}</span>
         </header>
         <ErrorBanner message={error} />
-        <TodoList todos={todos} />
+        {state === null ? (
+          error ? null : <p className="loading">加载中...</p>
+        ) : (
+          <TodoList todos={todos} />
+        )}
       </section>
     </main>
   );
