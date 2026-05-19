@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 
 import { getAppState } from "./api";
+import { ErrorBanner } from "./components/ErrorBanner";
+import { TodoList } from "./components/TodoList";
 import type { AppState } from "./types";
 
 export default function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const todos = state?.todos ?? [];
 
   useEffect(() => {
     let isMounted = true;
@@ -38,11 +41,12 @@ export default function App() {
         <header className="panel-header">
           <div>
             <h1>今天要做</h1>
-            <p>{state?.today ?? "加载中"}</p>
+            <p>{state?.today ?? "加载中..."}</p>
           </div>
-          <span>{state?.todos.length ?? 0}</span>
+          <span className="count">{todos.length}</span>
         </header>
-        {error ? <p className="error">{error}</p> : null}
+        <ErrorBanner message={error} />
+        <TodoList todos={todos} />
       </section>
     </main>
   );
