@@ -1,3 +1,4 @@
+mod config;
 mod date_rules;
 mod db;
 mod models;

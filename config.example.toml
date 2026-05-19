@@ -1,0 +1,9 @@
+[llm]
+provider = "openrouter"
+api_key = ""
+model = "z-ai/glm-4.5-air"
+
+[llm.fallback]
+provider = "bigmodel"
+api_key = ""
+model = "glm-4.7-flash"
