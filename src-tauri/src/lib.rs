@@ -1,3 +1,4 @@
+mod date_rules;
 mod models;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
