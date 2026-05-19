@@ -22,6 +22,7 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
     setIsOpen(false);
     setText("");
     setEntries([]);
+    onError(null);
   };
 
   const parse = async () => {

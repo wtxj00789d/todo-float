@@ -74,10 +74,12 @@ describe("App", () => {
 
     expect(document.querySelector(".empty")).not.toBeInTheDocument();
     expect(document.querySelector(".loading")).toHaveTextContent("加载中...");
+    expect(screen.queryByRole("button", { name: "添加" })).not.toBeInTheDocument();
 
     resolveState({ today: "2026-05-19", todos: [] });
 
     expect(await screen.findByText("今天没有事项")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
   });
 
   it("parses and saves a natural language todo preview", async () => {
@@ -93,10 +95,18 @@ describe("App", () => {
     await user.type(screen.getByLabelText("自然语言输入"), "明天拿文件");
     await user.click(screen.getByRole("button", { name: "解析" }));
 
-    expect(await screen.findByLabelText("事项 1")).toHaveValue("拿文件");
+    const titleInput = await screen.findByLabelText("事项 1");
+    const dateInput = screen.getByLabelText("日期 1");
+
+    expect(titleInput).toHaveValue("拿文件");
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "送文件");
+    await user.clear(dateInput);
+    await user.type(dateInput, "2026-05-20");
 
     await user.click(screen.getByRole("button", { name: "确认保存" }));
 
-    expect(savePreviewMock).toHaveBeenCalledWith([previewEntry]);
+    expect(savePreviewMock).toHaveBeenCalledWith([{ ...previewEntry, title: "送文件", due_date: "2026-05-20" }]);
   });
 });

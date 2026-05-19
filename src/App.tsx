@@ -12,9 +12,7 @@ export default function App() {
   const todos = state?.todos ?? [];
 
   const handleSaved = (savedTodos: Todo[]) => {
-    const today = state?.today ?? new Date().toISOString().slice(0, 10);
-
-    setState({ today, todos: savedTodos });
+    setState((currentState) => (currentState === null ? currentState : { ...currentState, todos: savedTodos }));
     setError(null);
   };
 
@@ -59,7 +57,7 @@ export default function App() {
         ) : (
           <TodoList todos={todos} />
         )}
-        <AddTodo onError={setError} onSaved={handleSaved} />
+        {state === null ? null : <AddTodo onError={setError} onSaved={handleSaved} />}
       </section>
     </main>
   );
