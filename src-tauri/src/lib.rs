@@ -58,11 +58,9 @@ async fn parse_todo_text(request: ParseRequest) -> Result<ParseResponse, String>
                 prompt,
                 user_text: request.text.clone(),
             };
-            llm::call_provider(fallback_request).await.map_err(|fallback_error| {
-                format!(
-                    "主模型和备用模型均调用失败：primary: {primary_error}; fallback: {fallback_error}"
-                )
-            })?
+            llm::call_provider(fallback_request)
+                .await
+                .map_err(|_| "主模型和备用模型均调用失败，请稍后重试或检查配置。".to_string())?
         }
     };
 
