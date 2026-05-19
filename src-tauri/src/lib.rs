@@ -1,6 +1,7 @@
 mod config;
 mod date_rules;
 mod db;
+mod llm;
 mod models;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
