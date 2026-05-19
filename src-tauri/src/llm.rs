@@ -1,6 +1,8 @@
 use crate::models::{DateSource, PreviewEntry};
 use chrono::{NaiveDate, NaiveTime};
+use reqwest::StatusCode;
 use serde::Deserialize;
+use serde_json::Value;
 
 #[derive(Debug, Deserialize)]
 struct LlmEnvelope {
@@ -92,25 +94,8 @@ pub async fn call_provider(request: ProviderRequest) -> Result<String, String> {
         return Err("LLM API key is blank".to_string());
     }
 
-    let endpoint = match request.provider.as_str() {
-        "openrouter" => "https://openrouter.ai/api/v1/chat/completions",
-        "bigmodel" => "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-        other => return Err(format!("Unsupported LLM provider: {other}")),
-    };
-
-    let body = serde_json::json!({
-        "model": request.model,
-        "messages": [
-            { "role": "system", "content": request.prompt },
-            { "role": "user", "content": request.user_text }
-        ],
-        "stream": false,
-        "response_format": { "type": "json_object" },
-        "temperature": 0,
-        "max_tokens": 2048,
-        "reasoning": { "effort": "none", "exclude": true },
-        "thinking": { "type": "disabled" }
-    });
+    let endpoint = endpoint_for_provider(&request.provider)?;
+    let body = provider_body(&request)?;
 
     let client = reqwest::Client::new();
     let response = client
@@ -131,18 +116,55 @@ pub async fn call_provider(request: ProviderRequest) -> Result<String, String> {
         .map_err(|err| sanitize_error(api_key, format!("LLM response body read failed: {err}")))?;
 
     if !status.is_success() {
-        return Err(sanitize_error(
-            api_key,
-            format!("LLM returned HTTP {status}: {text}"),
-        ));
+        return Err(provider_http_error(status, &text));
     }
 
-    let parsed: ChatResponse = serde_json::from_str(&text).map_err(|err| {
-        sanitize_error(
-            api_key,
-            format!("LLM response structure is invalid: {err}; raw={text}"),
-        )
-    })?;
+    parse_chat_content(&text)
+}
+
+fn endpoint_for_provider(provider: &str) -> Result<&'static str, String> {
+    match provider {
+        "openrouter" => Ok("https://openrouter.ai/api/v1/chat/completions"),
+        "bigmodel" => Ok("https://open.bigmodel.cn/api/paas/v4/chat/completions"),
+        other => Err(format!("Unsupported LLM provider: {other}")),
+    }
+}
+
+fn provider_body(request: &ProviderRequest) -> Result<Value, String> {
+    endpoint_for_provider(&request.provider)?;
+
+    let mut body = serde_json::json!({
+        "model": request.model,
+        "messages": [
+            { "role": "system", "content": request.prompt },
+            { "role": "user", "content": request.user_text }
+        ],
+        "stream": false,
+        "response_format": { "type": "json_object" },
+        "temperature": 0,
+        "max_tokens": 2048
+    });
+
+    match request.provider.as_str() {
+        "openrouter" => {
+            body["reasoning"] = serde_json::json!({ "effort": "none", "exclude": true });
+        }
+        "bigmodel" => {
+            body["thinking"] = serde_json::json!({ "type": "disabled" });
+        }
+        _ => unreachable!("provider already validated"),
+    }
+
+    Ok(body)
+}
+
+fn provider_http_error(status: StatusCode, _body: &str) -> String {
+    format!("LLM returned HTTP {status}")
+}
+
+fn parse_chat_content(text: &str) -> Result<String, String> {
+    let parsed: ChatResponse = serde_json::from_str(text)
+        .map_err(|err| format!("LLM response structure is invalid: {err}"))?;
 
     parsed
         .choices
@@ -286,5 +308,72 @@ mod tests {
         let err = parse_llm_entries("tomorrow", r#"{"entries":[]}"#).unwrap_err();
 
         assert!(err.contains("entries"));
+    }
+
+    #[test]
+    fn http_error_does_not_return_provider_body() {
+        let body = r#"{"error":"sk-live-secret-looking-value"}"#;
+
+        let err = provider_http_error(StatusCode::UNAUTHORIZED, body);
+
+        assert_eq!(err, "LLM returned HTTP 401 Unauthorized");
+        assert!(!err.contains("sk-live-secret-looking-value"));
+        assert!(!err.contains("error"));
+    }
+
+    #[test]
+    fn malformed_chat_response_does_not_return_raw_body() {
+        let body = r#"{"error":"sk-live-secret-looking-value"}"#;
+
+        let err = parse_chat_content(body).unwrap_err();
+
+        assert!(err.contains("LLM response structure is invalid"));
+        assert!(!err.contains("sk-live-secret-looking-value"));
+        assert!(!err.contains(body));
+    }
+
+    #[test]
+    fn openrouter_body_uses_reasoning_without_thinking() {
+        let body = provider_body(&provider_request("openrouter")).unwrap();
+
+        assert_eq!(body["model"], "test-model");
+        assert_eq!(body["messages"][0]["role"], "system");
+        assert_eq!(body["messages"][0]["content"], "system prompt");
+        assert_eq!(body["messages"][1]["role"], "user");
+        assert_eq!(body["messages"][1]["content"], "user text");
+        assert_eq!(body["stream"], false);
+        assert_eq!(body["response_format"]["type"], "json_object");
+        assert_eq!(body["temperature"], 0);
+        assert_eq!(body["max_tokens"], 2048);
+        assert_eq!(body["reasoning"]["effort"], "none");
+        assert_eq!(body["reasoning"]["exclude"], true);
+        assert!(body.get("thinking").is_none());
+    }
+
+    #[test]
+    fn bigmodel_body_uses_thinking_without_reasoning() {
+        let body = provider_body(&provider_request("bigmodel")).unwrap();
+
+        assert_eq!(body["model"], "test-model");
+        assert_eq!(body["messages"][0]["role"], "system");
+        assert_eq!(body["messages"][0]["content"], "system prompt");
+        assert_eq!(body["messages"][1]["role"], "user");
+        assert_eq!(body["messages"][1]["content"], "user text");
+        assert_eq!(body["stream"], false);
+        assert_eq!(body["response_format"]["type"], "json_object");
+        assert_eq!(body["temperature"], 0);
+        assert_eq!(body["max_tokens"], 2048);
+        assert_eq!(body["thinking"]["type"], "disabled");
+        assert!(body.get("reasoning").is_none());
+    }
+
+    fn provider_request(provider: &str) -> ProviderRequest {
+        ProviderRequest {
+            provider: provider.to_string(),
+            api_key: "test-key".to_string(),
+            model: "test-model".to_string(),
+            prompt: "system prompt".to_string(),
+            user_text: "user text".to_string(),
+        }
     }
 }
