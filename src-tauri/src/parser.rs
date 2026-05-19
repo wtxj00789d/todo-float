@@ -68,9 +68,10 @@ pub fn apply_local_overrides(
     for entry in &mut entries {
         let resolution = match entry.date_expression.as_deref().map(str::trim) {
             Some(expression) if !expression.is_empty() => {
-                resolve_date(expression, base).or_else(|| resolve_date(source_text, base))
+                resolve_date(expression, base)
+                    .or_else(|| resolve_unambiguous_source(source_text, base))
             }
-            _ => resolve_date(source_text, base),
+            _ => resolve_unambiguous_source(source_text, base),
         };
 
         if let Some(resolution) = resolution {
@@ -84,6 +85,26 @@ pub fn apply_local_overrides(
     }
 
     entries
+}
+
+fn resolve_unambiguous_source(
+    source_text: &str,
+    base: NaiveDate,
+) -> Option<crate::date_rules::DateResolution> {
+    if local_date_expression_count(source_text, base) == 1 {
+        resolve_date(source_text, base)
+    } else {
+        None
+    }
+}
+
+fn local_date_expression_count(source_text: &str, base: NaiveDate) -> usize {
+    source_text
+        .split(|ch| matches!(ch, '，' | '、' | '；' | ';' | ',' | '\n' | '\r'))
+        .map(str::trim)
+        .filter(|clause| !clause.is_empty())
+        .filter(|clause| resolve_date(clause, base).is_some())
+        .count()
 }
 
 fn week_start(base: NaiveDate) -> NaiveDate {
@@ -170,6 +191,39 @@ mod tests {
             NaiveDate::from_ymd_opt(2026, 5, 26).unwrap()
         );
         assert_eq!(entries[0].date_expression.as_deref(), Some("下周二"));
+        assert_eq!(entries[0].date_source, DateSource::Rule);
+    }
+
+    #[test]
+    fn apply_local_overrides_does_not_use_multi_date_source_without_expression() {
+        let mut entry = preview_entry(None, Some("LLM warning"));
+        entry.due_date = NaiveDate::from_ymd_opt(2026, 5, 27).unwrap();
+        let entries = vec![entry];
+
+        let entries = apply_local_overrides(entries, "明天买菜，下周二提交材料", base());
+
+        assert_eq!(
+            entries[0].due_date,
+            NaiveDate::from_ymd_opt(2026, 5, 27).unwrap()
+        );
+        assert_eq!(entries[0].date_expression, None);
+        assert_eq!(entries[0].date_source, DateSource::Llm);
+        assert_eq!(entries[0].warning.as_deref(), Some("LLM warning"));
+    }
+
+    #[test]
+    fn apply_local_overrides_uses_single_date_source_without_expression() {
+        let mut entry = preview_entry(None, None);
+        entry.due_date = NaiveDate::from_ymd_opt(2026, 5, 27).unwrap();
+        let entries = vec![entry];
+
+        let entries = apply_local_overrides(entries, "明天提醒我拿文件", base());
+
+        assert_eq!(
+            entries[0].due_date,
+            NaiveDate::from_ymd_opt(2026, 5, 20).unwrap()
+        );
+        assert_eq!(entries[0].date_expression.as_deref(), Some("明天"));
         assert_eq!(entries[0].date_source, DateSource::Rule);
     }
 
