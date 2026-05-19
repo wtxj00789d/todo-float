@@ -1,4 +1,4 @@
-use crate::models::{DateSource, Todo};
+use crate::models::{DateSource, PreviewEntry, Todo};
 use chrono::{Duration, NaiveDate, NaiveTime};
 use rusqlite::types::Type;
 use rusqlite::{params, Connection};
@@ -64,6 +64,33 @@ pub fn insert_todo(
         ) VALUES (?1, ?2, ?3, NULL, NULL, NULL, 'rule', NULL, ?4, ?4, NULL, NULL)
         "#,
         params![id, title, due_date.format(DATE_FORMAT).to_string(), now],
+    )?;
+    Ok(id)
+}
+
+pub fn insert_preview_entry(conn: &Connection, entry: &PreviewEntry) -> rusqlite::Result<String> {
+    let id = Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().to_rfc3339();
+    conn.execute(
+        r#"
+        INSERT INTO todos (
+            id, title, due_date, due_time, source_text, date_expression, date_source,
+            warning, created_at, updated_at, deleted_at, completed_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, NULL, NULL)
+        "#,
+        params![
+            id,
+            entry.title,
+            entry.due_date.format(DATE_FORMAT).to_string(),
+            entry
+                .due_time
+                .map(|time| time.format(TIME_FORMAT).to_string()),
+            entry.source_text,
+            entry.date_expression,
+            date_source_text(&entry.date_source),
+            entry.warning,
+            now
+        ],
     )?;
     Ok(id)
 }
@@ -186,6 +213,14 @@ fn parse_date_source(value: String, column: usize) -> rusqlite::Result<DateSourc
     }
 }
 
+fn date_source_text(source: &DateSource) -> &'static str {
+    match source {
+        DateSource::Rule => "rule",
+        DateSource::Llm => "llm",
+        DateSource::Default => "default",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,6 +283,42 @@ mod tests {
             todos[0].due_time,
             Some(NaiveTime::from_hms_opt(9, 30, 0).unwrap())
         );
+    }
+
+    #[test]
+    fn inserts_preview_entry_with_all_fields() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let entry = PreviewEntry {
+            title: "Submit report".to_string(),
+            due_date: NaiveDate::from_ymd_opt(2026, 5, 20).unwrap(),
+            due_time: Some(NaiveTime::from_hms_opt(9, 30, 0).unwrap()),
+            source_text: "tomorrow 09:30 submit report".to_string(),
+            date_expression: Some("tomorrow".to_string()),
+            date_source: DateSource::Rule,
+            warning: Some("confirm date".to_string()),
+        };
+
+        let id = insert_preview_entry(&conn, &entry).unwrap();
+        let todos = active_todos_for_date(&conn, entry.due_date).unwrap();
+
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].id, id);
+        assert_eq!(todos[0].title, entry.title);
+        assert_eq!(todos[0].due_date, entry.due_date);
+        assert_eq!(todos[0].due_time, entry.due_time);
+        assert_eq!(
+            todos[0].source_text.as_deref(),
+            Some(entry.source_text.as_str())
+        );
+        assert_eq!(
+            todos[0].date_expression.as_deref(),
+            entry.date_expression.as_deref()
+        );
+        assert_eq!(todos[0].date_source, entry.date_source);
+        assert_eq!(todos[0].warning.as_deref(), entry.warning.as_deref());
+        assert!(todos[0].deleted_at.is_none());
+        assert!(todos[0].completed_at.is_none());
     }
 
     #[test]
