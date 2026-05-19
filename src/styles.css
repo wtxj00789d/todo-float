@@ -144,6 +144,12 @@ body {
   padding: 0 12px 12px;
 }
 
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 10px;
+}
+
 button {
   min-height: 30px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -179,6 +185,12 @@ button:not(:disabled) {
 
 .ghost-button:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.11);
+}
+
+.compact-button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .add-panel {

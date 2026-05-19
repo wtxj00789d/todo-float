@@ -3,18 +3,20 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { getAppState, parseTodoText, savePreview } from "./api";
+import { getAppState, parseTodoText, savePreview, suppressToday } from "./api";
 import type { AppState, PreviewEntry, Todo } from "./types";
 
 vi.mock("./api", () => ({
   getAppState: vi.fn(),
   parseTodoText: vi.fn(),
   savePreview: vi.fn(),
+  suppressToday: vi.fn(),
 }));
 
 const getAppStateMock = vi.mocked(getAppState);
 const parseTodoTextMock = vi.mocked(parseTodoText);
 const savePreviewMock = vi.mocked(savePreview);
+const suppressTodayMock = vi.mocked(suppressToday);
 
 const todo: Todo = {
   id: "todo-1",
@@ -80,6 +82,19 @@ describe("App", () => {
 
     expect(await screen.findByText("今天没有事项")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
+  });
+
+  it("suppresses today's popup from the loaded state", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    suppressTodayMock.mockResolvedValueOnce();
+
+    render(<App />);
+
+    const suppressButton = await screen.findByRole("button", { name: "今天不再弹出" });
+    await user.click(suppressButton);
+
+    expect(suppressTodayMock).toHaveBeenCalledOnce();
   });
 
   it("parses and saves a natural language todo preview", async () => {
