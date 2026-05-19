@@ -1,19 +1,49 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { getAppState } from "./api";
-import type { AppState } from "./types";
+import { getAppState, parseTodoText, savePreview } from "./api";
+import type { AppState, PreviewEntry, Todo } from "./types";
 
 vi.mock("./api", () => ({
   getAppState: vi.fn(),
+  parseTodoText: vi.fn(),
+  savePreview: vi.fn(),
 }));
 
 const getAppStateMock = vi.mocked(getAppState);
+const parseTodoTextMock = vi.mocked(parseTodoText);
+const savePreviewMock = vi.mocked(savePreview);
+
+const todo: Todo = {
+  id: "todo-1",
+  title: "拿文件",
+  due_date: "2026-05-19",
+  due_time: null,
+  source_text: null,
+  date_expression: null,
+  date_source: "rule",
+  warning: null,
+  created_at: "2026-05-19T00:00:00Z",
+  updated_at: "2026-05-19T00:00:00Z",
+  deleted_at: null,
+  completed_at: null,
+};
+
+const previewEntry: PreviewEntry = {
+  title: "拿文件",
+  due_date: "2026-05-19",
+  due_time: null,
+  source_text: "明天拿文件",
+  date_expression: "明天",
+  date_source: "rule",
+  warning: null,
+};
 
 describe("App", () => {
   beforeEach(() => {
-    getAppStateMock.mockReset();
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
@@ -23,22 +53,7 @@ describe("App", () => {
   it("renders today's todo title and count", async () => {
     const state: AppState = {
       today: "2026-05-19",
-      todos: [
-        {
-          id: "todo-1",
-          title: "拿文件",
-          due_date: "2026-05-19",
-          due_time: null,
-          source_text: null,
-          date_expression: null,
-          date_source: "rule",
-          warning: null,
-          created_at: "2026-05-19T00:00:00Z",
-          updated_at: "2026-05-19T00:00:00Z",
-          deleted_at: null,
-          completed_at: null,
-        },
-      ],
+      todos: [todo],
     };
     getAppStateMock.mockResolvedValueOnce(state);
 
@@ -57,11 +72,31 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.queryByText("今天没有事项")).not.toBeInTheDocument();
+    expect(document.querySelector(".empty")).not.toBeInTheDocument();
     expect(document.querySelector(".loading")).toHaveTextContent("加载中...");
 
     resolveState({ today: "2026-05-19", todos: [] });
 
     expect(await screen.findByText("今天没有事项")).toBeInTheDocument();
+  });
+
+  it("parses and saves a natural language todo preview", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    parseTodoTextMock.mockResolvedValueOnce({ entries: [previewEntry] });
+    savePreviewMock.mockResolvedValueOnce([todo]);
+
+    render(<App />);
+
+    await screen.findByText("今天没有事项");
+    await user.click(screen.getByRole("button", { name: "添加" }));
+    await user.type(screen.getByLabelText("自然语言输入"), "明天拿文件");
+    await user.click(screen.getByRole("button", { name: "解析" }));
+
+    expect(await screen.findByLabelText("事项 1")).toHaveValue("拿文件");
+
+    await user.click(screen.getByRole("button", { name: "确认保存" }));
+
+    expect(savePreviewMock).toHaveBeenCalledWith([previewEntry]);
   });
 });

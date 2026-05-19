@@ -1,14 +1,22 @@
 import { useEffect, useState } from "react";
 
 import { getAppState } from "./api";
+import { AddTodo } from "./components/AddTodo";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { TodoList } from "./components/TodoList";
-import type { AppState } from "./types";
+import type { AppState, Todo } from "./types";
 
 export default function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const todos = state?.todos ?? [];
+
+  const handleSaved = (savedTodos: Todo[]) => {
+    const today = state?.today ?? new Date().toISOString().slice(0, 10);
+
+    setState({ today, todos: savedTodos });
+    setError(null);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -51,6 +59,7 @@ export default function App() {
         ) : (
           <TodoList todos={todos} />
         )}
+        <AddTodo onError={setError} onSaved={handleSaved} />
       </section>
     </main>
   );

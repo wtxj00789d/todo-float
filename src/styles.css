@@ -135,3 +135,135 @@ body {
   color: rgba(255, 214, 214, 0.94);
   overflow-wrap: anywhere;
 }
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0 12px 12px;
+}
+
+button {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+.primary-button {
+  background: rgba(76, 141, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.primary-button:not(:disabled):hover {
+  background: rgba(91, 153, 255, 0.82);
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ghost-button:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.add-panel {
+  display: grid;
+  gap: 8px;
+  padding: 0 0 12px;
+}
+
+.add-panel .actions {
+  padding-bottom: 0;
+}
+
+.field-label {
+  margin: 0 12px -2px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.text-area,
+.text-input,
+.date-input {
+  width: calc(100% - 24px);
+  min-width: 0;
+  margin: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(18, 18, 18, 0.26);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  outline: none;
+}
+
+.text-area:focus,
+.text-input:focus,
+.date-input:focus {
+  border-color: rgba(108, 163, 255, 0.72);
+  box-shadow: 0 0 0 2px rgba(108, 163, 255, 0.16);
+}
+
+.text-area {
+  min-height: 68px;
+  max-height: 120px;
+  padding: 8px 9px;
+  resize: vertical;
+  overflow-wrap: anywhere;
+}
+
+.preview-list {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.preview-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 6px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.preview-item .text-input,
+.preview-item .date-input {
+  width: 100%;
+  margin: 0;
+  padding: 6px 7px;
+}
+
+.warning {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(255, 215, 128, 0.92);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 340px) {
+  .preview-item {
+    grid-template-columns: 1fr;
+  }
+}
