@@ -1,5 +1,5 @@
 use crate::models::{DateSource, Todo};
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{Duration, NaiveDate, NaiveTime};
 use rusqlite::types::Type;
 use rusqlite::{params, Connection};
 use std::error::Error;
@@ -72,31 +72,38 @@ pub fn active_todos_for_date(
     conn: &Connection,
     due_date: NaiveDate,
 ) -> rusqlite::Result<Vec<Todo>> {
+    let next_date = due_date + Duration::days(1);
     let mut stmt = conn.prepare(
         r#"
         SELECT id, title, due_date, due_time, source_text, date_expression, date_source,
                warning, created_at, updated_at, deleted_at, completed_at
         FROM todos
-        WHERE due_date = ?1 AND deleted_at IS NULL AND completed_at IS NULL
+        WHERE due_date >= ?1 AND due_date < ?2 AND deleted_at IS NULL AND completed_at IS NULL
         ORDER BY created_at ASC
         "#,
     )?;
-    let rows = stmt.query_map(params![due_date.format(DATE_FORMAT).to_string()], |row| {
-        Ok(Todo {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            due_date: parse_date_column(row.get(2)?, 2)?,
-            due_time: parse_optional_time_column(row.get(3)?, 3)?,
-            source_text: row.get(4)?,
-            date_expression: row.get(5)?,
-            date_source: parse_date_source(row.get(6)?, 6)?,
-            warning: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
-            deleted_at: row.get(10)?,
-            completed_at: row.get(11)?,
-        })
-    })?;
+    let rows = stmt.query_map(
+        params![
+            due_date.format(DATE_FORMAT).to_string(),
+            next_date.format(DATE_FORMAT).to_string()
+        ],
+        |row| {
+            Ok(Todo {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                due_date: parse_date_column(row.get(2)?, 2)?,
+                due_time: parse_optional_time_column(row.get(3)?, 3)?,
+                source_text: row.get(4)?,
+                date_expression: row.get(5)?,
+                date_source: parse_date_source(row.get(6)?, 6)?,
+                warning: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+                deleted_at: row.get(10)?,
+                completed_at: row.get(11)?,
+            })
+        },
+    )?;
 
     rows.collect()
 }
@@ -241,5 +248,156 @@ mod tests {
             todos[0].due_time,
             Some(NaiveTime::from_hms_opt(9, 30, 0).unwrap())
         );
+    }
+
+    #[test]
+    fn malformed_stored_due_date_returns_error() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+        insert_raw_todo(
+            &conn,
+            "坏日期",
+            "2026-05-19T09:00:00",
+            None,
+            "rule",
+            None,
+            None,
+        );
+
+        let result = active_todos_for_date(&conn, today);
+
+        assert!(matches!(
+            result.unwrap_err(),
+            rusqlite::Error::FromSqlConversionFailure(2, Type::Text, _)
+        ));
+    }
+
+    #[test]
+    fn malformed_stored_due_time_returns_error() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+        insert_raw_todo(
+            &conn,
+            "坏时间",
+            "2026-05-19",
+            Some("9点"),
+            "rule",
+            None,
+            None,
+        );
+
+        let result = active_todos_for_date(&conn, today);
+
+        assert!(matches!(
+            result.unwrap_err(),
+            rusqlite::Error::FromSqlConversionFailure(3, Type::Text, _)
+        ));
+    }
+
+    #[test]
+    fn malformed_stored_date_source_returns_error() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+        insert_raw_todo(&conn, "坏来源", "2026-05-19", None, "manual", None, None);
+
+        let result = active_todos_for_date(&conn, today);
+
+        assert!(matches!(
+            result.unwrap_err(),
+            rusqlite::Error::FromSqlConversionFailure(6, Type::Text, _)
+        ));
+    }
+
+    #[test]
+    fn active_todos_excludes_deleted_and_completed_rows() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+
+        insert_raw_todo(&conn, "保留", "2026-05-19", None, "rule", None, None);
+        insert_raw_todo(
+            &conn,
+            "已删除",
+            "2026-05-19",
+            None,
+            "rule",
+            Some("2026-05-19T10:00:00Z"),
+            None,
+        );
+        insert_raw_todo(
+            &conn,
+            "已完成",
+            "2026-05-19",
+            None,
+            "rule",
+            None,
+            Some("2026-05-19T11:00:00Z"),
+        );
+
+        let todos = active_todos_for_date(&conn, today).unwrap();
+
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0].title, "保留");
+    }
+
+    #[test]
+    fn latest_popup_snapshot_returns_newest_event_for_date() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let today = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+
+        conn.execute(
+            r#"
+            INSERT INTO popup_events (id, date, shown_at, todo_snapshot_max_created_at, suppressed)
+            VALUES
+                (?1, '2026-05-19', '2026-05-19T08:00:00Z', 'old', 0),
+                (?2, '2026-05-19', '2026-05-19T10:00:00Z', 'new', 1),
+                (?3, '2026-05-20', '2026-05-20T09:00:00Z', 'other-date', 0)
+            "#,
+            params![
+                Uuid::new_v4().to_string(),
+                Uuid::new_v4().to_string(),
+                Uuid::new_v4().to_string()
+            ],
+        )
+        .unwrap();
+
+        let snapshot = latest_popup_snapshot(&conn, today).unwrap().unwrap();
+
+        assert_eq!(snapshot, (Some("new".to_string()), true));
+    }
+
+    fn insert_raw_todo(
+        conn: &Connection,
+        title: &str,
+        due_date: &str,
+        due_time: Option<&str>,
+        date_source: &str,
+        deleted_at: Option<&str>,
+        completed_at: Option<&str>,
+    ) {
+        let now = "2026-05-19T09:00:00Z";
+        conn.execute(
+            r#"
+            INSERT INTO todos (
+                id, title, due_date, due_time, source_text, date_expression, date_source,
+                warning, created_at, updated_at, deleted_at, completed_at
+            ) VALUES (?1, ?2, ?3, ?4, NULL, NULL, ?5, NULL, ?6, ?6, ?7, ?8)
+            "#,
+            params![
+                Uuid::new_v4().to_string(),
+                title,
+                due_date,
+                due_time,
+                date_source,
+                now,
+                deleted_at,
+                completed_at
+            ],
+        )
+        .unwrap();
     }
 }
