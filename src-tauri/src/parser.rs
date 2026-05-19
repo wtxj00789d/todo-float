@@ -66,12 +66,14 @@ pub fn apply_local_overrides(
     base: NaiveDate,
 ) -> Vec<PreviewEntry> {
     for entry in &mut entries {
-        let combined = match entry.date_expression.as_deref().map(str::trim) {
-            Some(expression) if !expression.is_empty() => format!("{expression}\n{source_text}"),
-            _ => source_text.to_string(),
+        let resolution = match entry.date_expression.as_deref().map(str::trim) {
+            Some(expression) if !expression.is_empty() => {
+                resolve_date(expression, base).or_else(|| resolve_date(source_text, base))
+            }
+            _ => resolve_date(source_text, base),
         };
 
-        if let Some(resolution) = resolve_date(&combined, base) {
+        if let Some(resolution) = resolution {
             entry.due_date = resolution.date;
             entry.date_expression = Some(resolution.expression);
             entry.date_source = DateSource::Rule;
@@ -155,6 +157,20 @@ mod tests {
         assert_eq!(entries[0].date_expression.as_deref(), Some("下周二"));
         assert_eq!(entries[0].date_source, DateSource::Rule);
         assert_eq!(entries[0].warning.as_deref(), Some("LLM warning"));
+    }
+
+    #[test]
+    fn apply_local_overrides_prefers_entry_expression_over_source_text() {
+        let entries = vec![preview_entry(Some("下周二"), None)];
+
+        let entries = apply_local_overrides(entries, "明天买菜，提醒我下周二提交材料", base());
+
+        assert_eq!(
+            entries[0].due_date,
+            NaiveDate::from_ymd_opt(2026, 5, 26).unwrap()
+        );
+        assert_eq!(entries[0].date_expression.as_deref(), Some("下周二"));
+        assert_eq!(entries[0].date_source, DateSource::Rule);
     }
 
     #[test]
