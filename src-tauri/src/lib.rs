@@ -4,6 +4,7 @@ use models::{AppState, ParseRequest, ParseResponse, SavePreviewRequest, Todo};
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::Command;
+use tauri_plugin_autostart::ManagerExt;
 
 mod config;
 mod date_rules;
@@ -139,6 +140,21 @@ fn run_startup_check(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn ensure_autostart(app: &tauri::AppHandle) {
+    let autolaunch = app.autolaunch();
+    match autolaunch.is_enabled() {
+        Ok(true) => {}
+        Ok(false) => {
+            if let Err(err) = autolaunch.enable() {
+                eprintln!("Failed to enable autostart: {err}");
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to inspect autostart state: {err}");
+        }
+    }
+}
+
 fn database_path() -> Result<PathBuf, String> {
     if let Ok(path) = std::env::var("TODO_FLOAT_DB") {
         return Ok(PathBuf::from(path));
@@ -175,6 +191,7 @@ pub fn run() {
             if is_startup_check {
                 let _ = run_startup_check(handle);
             } else {
+                ensure_autostart(handle);
                 window::open_main_window(handle)?;
             }
 
