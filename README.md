@@ -1,52 +1,39 @@
 # Todo Float
 
-Todo Float 是一个轻量级 Windows 桌面待办浮窗。它的目标很窄：开机时检查今天是否有待办，只在需要时弹出一个克制的小窗口；平时可以用自然语言追加事项，例如“明天提醒我拿文件和找凯莉”。
+Todo Float 是一个轻量级 Windows 待办浮窗。它会在开机时检查“今天要做”的事项，只在今天有待办、且今天还没提醒过时弹出。
 
-## 用途
+你也可以直接用自然语言添加待办，例如：
 
-- 开机轻量检查当天 todo，避免启动时调用大模型。
-- 每个自然日期只弹出一次；跨到第二天后会按新日期重新判断。
-- 自然语言输入会解析成事项和日期，当前支持日期级 todo，并保留 `due_time` 字段作为后续时间提醒能力。
-- 日期规则按本机日期计算，并采用周一为一周起始、周日为一周结束。
-- 主模型为 OpenRouter `z-ai/glm-4.5-air`，备用模型为智谱直连 `glm-4.7-flash`。默认固定这两个模型，是因为它们都有免费可用额度或免费档，注册账号并开通 API 后，把 API Key 填进配置即可使用。
+```text
+明天提醒我拿文件和找凯莉
+```
+
+应用会尽量拆成：
+
+```text
+1. 拿文件
+2. 找凯莉
+```
 
 ## 安装
 
-### 直接运行
+下载并运行 Release 里的安装包：
 
-本机完成构建后，可直接运行：
+[Todo Float v0.1.0](https://github.com/wtxj00789d/todo-float/releases/tag/v0.1.0)
 
-```powershell
-src-tauri\target\release\todo-float.exe
+推荐下载：
+
+```text
+Todo.Float_0.1.0_x64-setup.exe
 ```
 
-安装包位置：
-
-```powershell
-src-tauri\target\release\bundle\nsis\Todo Float_0.1.0_x64-setup.exe
-src-tauri\target\release\bundle\msi\Todo Float_0.1.0_x64_en-US.msi
-```
-
-第一次正常打开应用时，它会注册 Windows 开机启动项。开机启动时使用 `--startup-check` 模式，只查本地数据库和当天弹窗状态，不调用大模型。
-
-### 从源码构建
-
-需要 Windows、Node.js、Rust 和 Tauri 依赖环境。
-
-```powershell
-npm install
-npm.cmd run tauri build
-```
-
-开发模式：
-
-```powershell
-npm.cmd run tauri dev
-```
+安装完成后，第一次打开应用时会自动注册 Windows 开机启动。之后开机时应用只做本地检查，不会在开机阶段调用大模型。
 
 ## 初始化配置
 
-安装后第一次启动会在 `todo-float.exe` 同目录自动创建空的 `config.toml`。如果已有配置，应用不会覆盖。也可以从仓库根目录复制 `config.example.toml`，再填入自己的 API Key：
+第一次启动时，应用会在 `todo-float.exe` 同目录自动创建一个空的 `config.toml`。如果文件已经存在，应用不会覆盖它。
+
+打开 `config.toml`，填入自己的 API Key：
 
 ```toml
 [llm]
@@ -60,39 +47,50 @@ api_key = ""
 model = "glm-4.7-flash"
 ```
 
-说明：
+需要填写的位置是两个 `api_key = ""`。
 
-- `config.toml` 不会提交到 git。
-- 如果主模型 `api_key` 为空，点击“解析”时会提示补配置。
-- OpenRouter API Key 教程：[OpenRouter Quickstart](https://openrouter.ai/docs/quickstart)。
-- 智谱 API Key 教程：[智谱 AI 使用概述](https://docs.bigmodel.cn/cn/api/introduction)。
-- 可以用环境变量 `TODO_FLOAT_CONFIG` 指定配置文件路径。
-- 数据库默认放在 exe 同目录，文件名为 `todo-float.sqlite3`；也可以用 `TODO_FLOAT_DB` 指定路径。
+获取 API Key：
 
-## 使用
+- OpenRouter： [OpenRouter Quickstart](https://openrouter.ai/docs/quickstart)
+- 智谱 AI： [智谱 AI 使用概述](https://docs.bigmodel.cn/cn/api/introduction)
 
-1. 打开 `todo-float.exe`。
-2. 点击“添加”，在自然语言输入框里写下待办。
-3. 可点击“语音”调用 Windows 语音输入。
-4. 点击“解析”，检查预览里的事项和日期。
-5. 点击“确认保存”。
-6. 如果今天不想再弹窗，点击“今天不再弹出”。
+如果暂时只想用一个模型，也可以只填 OpenRouter 的 `api_key`；智谱的备用 key 可以先留空。
 
-开机启动时，应用只会读取本地数据库：如果今天没有 todo，或今天已经弹出过且没有新增 todo，就不会显示窗口。
+## 怎么用
 
-## 工程结构
+1. 打开 Todo Float。
+2. 点击“添加”。
+3. 在输入框里写自然语言待办，例如：
 
-- `src/`：React 浮窗界面。
-- `src-tauri/src/`：Tauri/Rust 后端、SQLite、日期规则、LLM 调用。
-- `src-tauri/icons/`：应用图标资源，由 gpt-image-2 生成源图后通过 Tauri icon 管线切出。
-- `config.example.toml`：配置模板。
-- `mockups/`：早期浏览器 mockup。
-- `docs/superpowers/`：设计和实现计划记录。
-
-## 验证
-
-```powershell
-npm.cmd test
-cd src-tauri
-cargo test
+```text
+今天提醒我填写出行记录去催雇主信
 ```
+
+4. 点击“解析”。
+5. 检查预览里的事项和日期。如果不满意，可以直接在预览里改文字或日期。
+6. 点击“确认保存”。
+
+也可以点击“语音”按钮，调用 Windows 自带语音输入。
+
+如果今天不想再弹窗，点击“今天不再弹出”。这个操作只影响当天；第二天如果有当天待办，仍会重新判断是否弹出。
+
+## 开机弹窗规则
+
+- 今天没有待办：不弹出。
+- 今天已经弹出过，且没有新增今天的待办：不再弹出。
+- 今天已经点过“今天不再弹出”：当天不再弹出。
+- 第二天会重新按新日期判断。
+
+日期按电脑本机日期计算；周一是一周开始，周日是一周结束。
+
+## 为什么默认是这两个 LLM
+
+默认使用：
+
+- OpenRouter `z-ai/glm-4.5-air`
+- 智谱直连 `glm-4.7-flash`
+
+原因很朴素：它们目前有免费可用额度或免费档，注册账号并开通 API 后就可以填 key 使用。
+
+这不是广告，也没有赞助关系。只是为了让这个小工具尽量低成本、容易跑起来。
+
