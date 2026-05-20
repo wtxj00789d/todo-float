@@ -17,6 +17,7 @@ mod window;
 
 #[tauri::command]
 fn get_app_state() -> Result<AppState, String> {
+    config::ensure_config_file()?;
     let date = today();
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
     let todos = db::active_todos_for_date(&conn, date).map_err(|err| err.to_string())?;
@@ -26,7 +27,7 @@ fn get_app_state() -> Result<AppState, String> {
 
 #[tauri::command]
 async fn parse_todo_text(request: ParseRequest) -> Result<ParseResponse, String> {
-    let config_path = config::config_path()?;
+    let config_path = config::ensure_config_file()?;
     let config = config::load_config_from(&config_path)?;
     if config.llm.api_key.trim().is_empty() {
         return Err(format!(
@@ -75,6 +76,7 @@ async fn parse_todo_text(request: ParseRequest) -> Result<ParseResponse, String>
 
 #[tauri::command]
 fn save_preview(request: SavePreviewRequest) -> Result<Vec<Todo>, String> {
+    config::ensure_config_file()?;
     let date = today();
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
     for entry in &request.entries {
@@ -85,6 +87,7 @@ fn save_preview(request: SavePreviewRequest) -> Result<Vec<Todo>, String> {
 
 #[tauri::command]
 fn suppress_today() -> Result<(), String> {
+    config::ensure_config_file()?;
     let date = today();
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
     let todos = db::active_todos_for_date(&conn, date).map_err(|err| err.to_string())?;
@@ -126,6 +129,7 @@ fn open_windows_voice_input() -> Result<(), String> {
 }
 
 fn run_startup_check(app: &tauri::AppHandle) -> Result<(), String> {
+    config::ensure_config_file()?;
     let date = today();
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
     let todos = db::active_todos_for_date(&conn, date).map_err(|err| err.to_string())?;
@@ -191,6 +195,7 @@ pub fn run() {
             if is_startup_check {
                 let _ = run_startup_check(handle);
             } else {
+                config::ensure_config_file()?;
                 ensure_autostart(handle);
                 window::open_main_window(handle)?;
             }

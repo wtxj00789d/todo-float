@@ -114,14 +114,14 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
         </button>
       </div>
       {entries.length > 0 ? (
-        <>
+        <div className="preview-area">
           <PreviewEditor entries={entries} onChange={setEntries} />
-          <div className="actions">
+          <div className="actions preview-actions">
             <button className="primary-button" disabled={isBusy || entries.length === 0} type="button" onClick={save}>
               确认保存
             </button>
           </div>
-        </>
+        </div>
       ) : null}
     </section>
   );

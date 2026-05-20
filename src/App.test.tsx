@@ -55,6 +55,12 @@ const previewEntry: PreviewEntry = {
   warning: null,
 };
 
+const secondPreviewEntry: PreviewEntry = {
+  ...previewEntry,
+  title: "找凯莉",
+  source_text: "明天找凯莉",
+};
+
 describe("App", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -161,5 +167,21 @@ describe("App", () => {
 
     expect(screen.getByLabelText("自然语言输入")).toHaveFocus();
     expect(openVoiceInputMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the save action in a dedicated preview area for multiple entries", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    parseTodoTextMock.mockResolvedValueOnce({ entries: [previewEntry, secondPreviewEntry] });
+
+    render(<App />);
+
+    await screen.findByText("今天没有事项");
+    await user.click(screen.getByRole("button", { name: "添加" }));
+    await user.type(screen.getByLabelText("自然语言输入"), "明天拿文件和找凯莉");
+    await user.click(screen.getByRole("button", { name: "解析" }));
+
+    expect(await screen.findByLabelText("事项 2")).toHaveValue("找凯莉");
+    expect(screen.getByRole("button", { name: "确认保存" }).parentElement).toHaveClass("preview-actions");
   });
 });

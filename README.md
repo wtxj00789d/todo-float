@@ -46,7 +46,7 @@ npm.cmd run tauri dev
 
 ## 初始化配置
 
-在 `todo-float.exe` 同目录创建 `config.toml`。可以从仓库根目录复制 `config.example.toml`，再填入自己的 API Key：
+安装后第一次启动会在 `todo-float.exe` 同目录自动创建空的 `config.toml`。如果已有配置，应用不会覆盖。也可以从仓库根目录复制 `config.example.toml`，再填入自己的 API Key：
 
 ```toml
 [llm]
@@ -94,4 +94,3 @@ npm.cmd test
 cd src-tauri
 cargo test
 ```
-

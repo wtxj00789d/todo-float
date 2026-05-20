@@ -35,8 +35,12 @@ pub fn build_prompt(base: NaiveDate) -> String {
 
 拆分与清洗规则：
 - 用户一句话里可能有多个待办，用逗号、顿号、分号、换行、以及“还有/另外/顺便/并且”等连接词拆分。
+- 尽量把独立动作拆成独立事项；如果一句话里有多个动词短语、多个目标对象、或用“去/和/并/以及/然后/再/顺便”连接的行动，通常应拆开。
+- “提醒我今天要填写出行记录去催雇主信”应输出两个 entries：“填写出行记录”和“催雇主信”，二者 date_expression 都是“今天”。
+- “明天记得提醒我要去拿文件和找凯莉”应输出两个 entries：“拿文件”和“找凯莉”，二者 date_expression 都是“明天”。
+- 不要因为多个事项共享同一个日期就合并；共享日期应复制到每个 entry。
 - 去掉触发词和口语前缀，例如“提醒我”“帮我记一下”“记得”“到时候”“需要”“我要”。
-- item 只保留待办本身，不要把日期表达式、时间表达式或触发词留在事项里。
+- item 只保留待办本身，不要把日期表达式、时间表达式、触发词、连接词或无意义的“要/去”留在事项里。
 - date_expression 保留用户原文中的日期短语；没有日期短语时为 null。
 - due_time 只在用户明确给出时间时填写 HH:mm，否则为 null。
 - 不确定、日期已过去、语义含糊时，把简短中文提示写入 warning；没有 warning 时为 null。
@@ -180,6 +184,9 @@ mod tests {
         assert!(prompt.contains("下周日期表（周一开始）："));
         assert!(prompt.contains("周二=2026-05-26"));
         assert!(prompt.contains("一周从周一开始，周日结束"));
+        assert!(prompt.contains("填写出行记录"));
+        assert!(prompt.contains("催雇主信"));
+        assert!(prompt.contains("不要因为多个事项共享同一个日期就合并"));
     }
 
     #[test]
