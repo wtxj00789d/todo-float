@@ -13,6 +13,7 @@ pub fn open_main_window(app: &AppHandle) -> tauri::Result<()> {
         .resizable(true)
         .decorations(false)
         .transparent(true)
+        .shadow(false)
         .always_on_top(false)
         .build()?;
 

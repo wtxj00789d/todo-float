@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { getAppState, suppressToday } from "./api";
 import { AddTodo } from "./components/AddTodo";
@@ -35,6 +36,18 @@ export default function App() {
     }
   };
 
+  const handleHeaderMouseDown = async (event: MouseEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    try {
+      await getCurrentWindow().startDragging();
+    } catch {
+      // Dragging is only available in the Tauri runtime.
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -63,8 +76,8 @@ export default function App() {
   return (
     <main className="float-shell">
       <section className="float-panel">
-        <header className="panel-header" data-tauri-drag-region>
-          <div data-tauri-drag-region>
+        <header className="panel-header" onMouseDown={handleHeaderMouseDown}>
+          <div>
             <h1>今天要做</h1>
             <p>{state?.today ?? "加载中..."}</p>
           </div>

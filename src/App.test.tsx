@@ -1,10 +1,20 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { getAppState, openVoiceInput, parseTodoText, savePreview, suppressToday } from "./api";
 import type { AppState, PreviewEntry, Todo } from "./types";
+
+const { startDraggingMock } = vi.hoisted(() => ({
+  startDraggingMock: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({
+    startDragging: startDraggingMock,
+  }),
+}));
 
 vi.mock("./api", () => ({
   getAppState: vi.fn(),
@@ -97,6 +107,17 @@ describe("App", () => {
     await user.click(suppressButton);
 
     expect(suppressTodayMock).toHaveBeenCalledOnce();
+  });
+
+  it("starts native window dragging from the header", async () => {
+    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+
+    render(<App />);
+
+    await screen.findByText("2026-05-19");
+    fireEvent.mouseDown(document.querySelector(".panel-header") as Element, { button: 0 });
+
+    expect(startDraggingMock).toHaveBeenCalledOnce();
   });
 
   it("parses and saves a natural language todo preview", async () => {
