@@ -1,4 +1,5 @@
 export type DateSource = "rule" | "llm" | "default";
+export type LaunchMode = "manual" | "startup_check";
 
 export interface Todo {
   id: string;
@@ -28,6 +29,7 @@ export interface PreviewEntry {
 export interface AppState {
   today: string;
   todos: Todo[];
+  launch_mode: LaunchMode;
 }
 
 export interface ParseResponse {

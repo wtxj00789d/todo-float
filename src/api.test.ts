@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 
 import {
+  exitApp,
   getAppState,
   openVoiceInput,
   parseTodoText,
@@ -66,6 +67,14 @@ describe("api", () => {
     await suppressToday();
 
     expect(invokeMock).toHaveBeenCalledWith("suppress_today");
+  });
+
+  it("exits through the Tauri command", async () => {
+    invokeMock.mockResolvedValueOnce(undefined);
+
+    await exitApp();
+
+    expect(invokeMock).toHaveBeenCalledWith("exit_app");
   });
 
   it("opens Windows voice input through the Tauri command", async () => {

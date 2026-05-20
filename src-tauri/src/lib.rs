@@ -1,5 +1,5 @@
 use chrono::Local;
-use models::{AppState, ParseRequest, ParseResponse, SavePreviewRequest, Todo};
+use models::{AppState, LaunchMode, ParseRequest, ParseResponse, SavePreviewRequest, Todo};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
@@ -22,7 +22,11 @@ fn get_app_state() -> Result<AppState, String> {
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
     let todos = db::active_todos_for_date(&conn, date).map_err(|err| err.to_string())?;
 
-    Ok(AppState { today: date, todos })
+    Ok(AppState {
+        today: date,
+        todos,
+        launch_mode: launch_mode(),
+    })
 }
 
 #[tauri::command]
@@ -100,6 +104,11 @@ fn open_voice_input() -> Result<(), String> {
     open_windows_voice_input()
 }
 
+#[tauri::command]
+fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 #[cfg(windows)]
 fn open_windows_voice_input() -> Result<(), String> {
     const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -175,6 +184,14 @@ fn today() -> chrono::NaiveDate {
     Local::now().date_naive()
 }
 
+fn launch_mode() -> LaunchMode {
+    if std::env::args().any(|arg| arg == "--startup-check") {
+        LaunchMode::StartupCheck
+    } else {
+        LaunchMode::Manual
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -187,7 +204,8 @@ pub fn run() {
             parse_todo_text,
             save_preview,
             suppress_today,
-            open_voice_input
+            open_voice_input,
+            exit_app
         ])
         .setup(|app| {
             let is_startup_check = std::env::args().any(|arg| arg == "--startup-check");

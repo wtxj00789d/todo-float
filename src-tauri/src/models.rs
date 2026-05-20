@@ -10,6 +10,13 @@ pub enum DateSource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LaunchMode {
+    Manual,
+    StartupCheck,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Todo {
     pub id: String,
     pub title: String,
@@ -42,6 +49,7 @@ pub struct PreviewEntry {
 pub struct AppState {
     pub today: NaiveDate,
     pub todos: Vec<Todo>,
+    pub launch_mode: LaunchMode,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

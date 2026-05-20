@@ -1,24 +1,27 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { getAppState, openVoiceInput, parseTodoText, savePreview, suppressToday } from "./api";
-import type { AppState, PreviewEntry, Todo } from "./types";
+import { exitApp, getAppState, openVoiceInput, parseTodoText, savePreview, suppressToday } from "./api";
+import type { AppState, LaunchMode, PreviewEntry, Todo } from "./types";
 
-const { minimizeMock, startDraggingMock } = vi.hoisted(() => ({
+const { minimizeMock, setAlwaysOnTopMock, startDraggingMock } = vi.hoisted(() => ({
   minimizeMock: vi.fn(),
+  setAlwaysOnTopMock: vi.fn(),
   startDraggingMock: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     minimize: minimizeMock,
+    setAlwaysOnTop: setAlwaysOnTopMock,
     startDragging: startDraggingMock,
   }),
 }));
 
 vi.mock("./api", () => ({
+  exitApp: vi.fn(),
   getAppState: vi.fn(),
   parseTodoText: vi.fn(),
   savePreview: vi.fn(),
@@ -26,6 +29,7 @@ vi.mock("./api", () => ({
   openVoiceInput: vi.fn(),
 }));
 
+const exitAppMock = vi.mocked(exitApp);
 const getAppStateMock = vi.mocked(getAppState);
 const parseTodoTextMock = vi.mocked(parseTodoText);
 const savePreviewMock = vi.mocked(savePreview);
@@ -63,9 +67,22 @@ const secondPreviewEntry: PreviewEntry = {
   source_text: "明天找凯莉",
 };
 
+function appState(launchMode: LaunchMode = "startup_check", todos: Todo[] = []): AppState {
+  return {
+    today: "2026-05-19",
+    todos,
+    launch_mode: launchMode,
+  };
+}
+
 describe("App", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    exitAppMock.mockResolvedValue(undefined);
+    minimizeMock.mockResolvedValue(undefined);
+    openVoiceInputMock.mockResolvedValue(undefined);
+    setAlwaysOnTopMock.mockResolvedValue(undefined);
+    startDraggingMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -73,11 +90,7 @@ describe("App", () => {
   });
 
   it("renders today's todo title and count", async () => {
-    const state: AppState = {
-      today: "2026-05-19",
-      todos: [todo],
-    };
-    getAppStateMock.mockResolvedValueOnce(state);
+    getAppStateMock.mockResolvedValueOnce(appState("startup_check", [todo]));
 
     render(<App />);
 
@@ -98,29 +111,28 @@ describe("App", () => {
     expect(document.querySelector(".loading")).toHaveTextContent("加载中...");
     expect(screen.queryByRole("button", { name: "添加" })).not.toBeInTheDocument();
 
-    resolveState({ today: "2026-05-19", todos: [] });
+    resolveState(appState());
 
     expect(await screen.findByText("今天没有事项")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
   });
 
-  it("suppresses today's popup and minimizes the window from the loaded state", async () => {
+  it("suppresses today's popup and exits the app from the loaded state", async () => {
     const user = userEvent.setup();
-    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    getAppStateMock.mockResolvedValueOnce(appState());
     suppressTodayMock.mockResolvedValueOnce();
-    minimizeMock.mockResolvedValueOnce(undefined);
 
     render(<App />);
 
-    const suppressButton = await screen.findByRole("button", { name: "今天不再弹出" });
+    const suppressButton = await screen.findByRole("button", { name: "今日不再弹出" });
     await user.click(suppressButton);
 
     expect(suppressTodayMock).toHaveBeenCalledOnce();
-    expect(minimizeMock).toHaveBeenCalledOnce();
+    expect(exitAppMock).toHaveBeenCalledOnce();
   });
 
   it("starts native window dragging from the header", async () => {
-    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    getAppStateMock.mockResolvedValueOnce(appState());
 
     render(<App />);
 
@@ -130,9 +142,48 @@ describe("App", () => {
     expect(startDraggingMock).toHaveBeenCalledOnce();
   });
 
+  it("toggles always-on-top from the pin button", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce(appState());
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "置顶" }));
+    expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+
+    await user.click(screen.getByRole("button", { name: "取消置顶" }));
+    expect(setAlwaysOnTopMock).toHaveBeenCalledWith(false);
+  });
+
+  it("minimizes and closes from title controls", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce(appState());
+
+    render(<App />);
+
+    await screen.findByText("2026-05-19");
+    await user.click(screen.getByRole("button", { name: "最小化" }));
+    await user.click(screen.getByRole("button", { name: "关闭" }));
+
+    expect(minimizeMock).toHaveBeenCalledOnce();
+    expect(exitAppMock).toHaveBeenCalledOnce();
+  });
+
+  it("opens manual launches directly in the natural language field without voice input", async () => {
+    getAppStateMock.mockResolvedValueOnce(appState("manual"));
+
+    render(<App />);
+
+    const textArea = await screen.findByLabelText("自然语言输入");
+
+    await waitFor(() => expect(textArea).toHaveFocus());
+    expect(screen.queryByRole("button", { name: "添加" })).not.toBeInTheDocument();
+    expect(openVoiceInputMock).not.toHaveBeenCalled();
+  });
+
   it("parses and saves a natural language todo preview", async () => {
     const user = userEvent.setup();
-    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    getAppStateMock.mockResolvedValueOnce(appState());
     parseTodoTextMock.mockResolvedValueOnce({ entries: [previewEntry] });
     savePreviewMock.mockResolvedValueOnce([todo]);
 
@@ -141,7 +192,7 @@ describe("App", () => {
     await screen.findByText("今天没有事项");
     await user.click(screen.getByRole("button", { name: "添加" }));
     await user.type(screen.getByLabelText("自然语言输入"), "明天拿文件");
-    await user.click(screen.getByRole("button", { name: "解析" }));
+    await user.click(screen.getByRole("button", { name: "预览" }));
 
     const titleInput = await screen.findByLabelText("事项 1");
     const dateInput = screen.getByLabelText("日期 1");
@@ -158,16 +209,27 @@ describe("App", () => {
     expect(savePreviewMock).toHaveBeenCalledWith([{ ...previewEntry, title: "送文件", due_date: "2026-05-20" }]);
   });
 
-  it("opens Windows voice input from the natural language field", async () => {
+  it("opens Windows voice input when adding from the startup popup", async () => {
     const user = userEvent.setup();
-    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
-    openVoiceInputMock.mockResolvedValueOnce();
+    getAppStateMock.mockResolvedValueOnce(appState());
 
     render(<App />);
 
     await screen.findByText("今天没有事项");
     await user.click(screen.getByRole("button", { name: "添加" }));
-    await user.click(screen.getByRole("button", { name: "语音" }));
+
+    expect(screen.getByLabelText("自然语言输入")).toHaveFocus();
+    expect(openVoiceInputMock).toHaveBeenCalledOnce();
+  });
+
+  it("opens Windows voice input from the mic button", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce(appState("manual"));
+
+    render(<App />);
+
+    await screen.findByLabelText("自然语言输入");
+    await user.click(screen.getByRole("button", { name: "语音输入" }));
 
     expect(screen.getByLabelText("自然语言输入")).toHaveFocus();
     expect(openVoiceInputMock).toHaveBeenCalledOnce();
@@ -175,7 +237,7 @@ describe("App", () => {
 
   it("keeps the save action in a dedicated preview area for multiple entries", async () => {
     const user = userEvent.setup();
-    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    getAppStateMock.mockResolvedValueOnce(appState());
     parseTodoTextMock.mockResolvedValueOnce({ entries: [previewEntry, secondPreviewEntry] });
 
     render(<App />);
@@ -183,7 +245,7 @@ describe("App", () => {
     await screen.findByText("今天没有事项");
     await user.click(screen.getByRole("button", { name: "添加" }));
     await user.type(screen.getByLabelText("自然语言输入"), "明天拿文件和找凯莉");
-    await user.click(screen.getByRole("button", { name: "解析" }));
+    await user.click(screen.getByRole("button", { name: "预览" }));
 
     expect(await screen.findByLabelText("事项 2")).toHaveValue("找凯莉");
     expect(screen.getByRole("button", { name: "确认保存" }).parentElement).toHaveClass("preview-actions");

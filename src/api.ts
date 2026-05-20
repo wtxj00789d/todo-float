@@ -18,6 +18,10 @@ export function suppressToday(): Promise<void> {
   return invoke<void>("suppress_today");
 }
 
+export function exitApp(): Promise<void> {
+  return invoke<void>("exit_app");
+}
+
 export function openVoiceInput(): Promise<void> {
   return invoke<void>("open_voice_input");
 }
