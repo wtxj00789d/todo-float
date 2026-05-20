@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { getAppState, parseTodoText, savePreview, suppressToday } from "./api";
+import { getAppState, openVoiceInput, parseTodoText, savePreview, suppressToday } from "./api";
 import type { AppState, PreviewEntry, Todo } from "./types";
 
 vi.mock("./api", () => ({
@@ -11,12 +11,14 @@ vi.mock("./api", () => ({
   parseTodoText: vi.fn(),
   savePreview: vi.fn(),
   suppressToday: vi.fn(),
+  openVoiceInput: vi.fn(),
 }));
 
 const getAppStateMock = vi.mocked(getAppState);
 const parseTodoTextMock = vi.mocked(parseTodoText);
 const savePreviewMock = vi.mocked(savePreview);
 const suppressTodayMock = vi.mocked(suppressToday);
+const openVoiceInputMock = vi.mocked(openVoiceInput);
 
 const todo: Todo = {
   id: "todo-1",
@@ -123,5 +125,20 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "确认保存" }));
 
     expect(savePreviewMock).toHaveBeenCalledWith([{ ...previewEntry, title: "送文件", due_date: "2026-05-20" }]);
+  });
+
+  it("opens Windows voice input from the natural language field", async () => {
+    const user = userEvent.setup();
+    getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
+    openVoiceInputMock.mockResolvedValueOnce();
+
+    render(<App />);
+
+    await screen.findByText("今天没有事项");
+    await user.click(screen.getByRole("button", { name: "添加" }));
+    await user.click(screen.getByRole("button", { name: "语音" }));
+
+    expect(screen.getByLabelText("自然语言输入")).toHaveFocus();
+    expect(openVoiceInputMock).toHaveBeenCalledOnce();
   });
 });

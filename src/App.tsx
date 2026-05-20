@@ -63,8 +63,8 @@ export default function App() {
   return (
     <main className="float-shell">
       <section className="float-panel">
-        <header className="panel-header">
-          <div>
+        <header className="panel-header" data-tauri-drag-region>
+          <div data-tauri-drag-region>
             <h1>今天要做</h1>
             <p>{state?.today ?? "加载中..."}</p>
           </div>

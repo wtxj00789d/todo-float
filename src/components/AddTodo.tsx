@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { parseTodoText, savePreview } from "../api";
+import { openVoiceInput, parseTodoText, savePreview } from "../api";
 import type { PreviewEntry, Todo } from "../types";
 import { PreviewEditor } from "./PreviewEditor";
 
@@ -15,6 +15,7 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
   const [entries, setEntries] = useState<PreviewEntry[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const trimmedText = text.trim();
   const isBusy = isParsing || isSaving;
 
@@ -62,6 +63,16 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
     }
   };
 
+  const startVoiceInput = async () => {
+    textAreaRef.current?.focus();
+    onError(null);
+    try {
+      await openVoiceInput();
+    } catch (reason: unknown) {
+      onError(reason instanceof Error ? reason.message : String(reason));
+    }
+  };
+
   if (!isOpen) {
     return (
       <footer className="actions">
@@ -74,9 +85,14 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
 
   return (
     <section className="add-panel">
-      <label className="field-label" htmlFor="todo-natural-input">
-        自然语言输入
-      </label>
+      <div className="field-head">
+        <label className="field-label" htmlFor="todo-natural-input">
+          自然语言输入
+        </label>
+        <button className="ghost-button voice-button" disabled={isBusy} type="button" onClick={startVoiceInput}>
+          语音
+        </button>
+      </div>
       <textarea
         className="text-area"
         disabled={isBusy}
@@ -85,6 +101,7 @@ export function AddTodo({ onError, onSaved }: AddTodoProps) {
           setText(event.target.value);
           setEntries([]);
         }}
+        ref={textAreaRef}
         rows={3}
         value={text}
       />

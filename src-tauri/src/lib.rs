@@ -1,6 +1,9 @@
 use chrono::Local;
 use models::{AppState, ParseRequest, ParseResponse, SavePreviewRequest, Todo};
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
+use std::process::Command;
 
 mod config;
 mod date_rules;
@@ -88,6 +91,39 @@ fn suppress_today() -> Result<(), String> {
     db::record_popup(&conn, date, max_created_at, true).map_err(|err| err.to_string())
 }
 
+#[tauri::command]
+fn open_voice_input() -> Result<(), String> {
+    open_windows_voice_input()
+}
+
+#[cfg(windows)]
+fn open_windows_voice_input() -> Result<(), String> {
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let script = r#"
+Add-Type -Namespace Win32 -Name Keyboard -MemberDefinition @'
+  [System.Runtime.InteropServices.DllImport("user32.dll")]
+  public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+'@
+$KEYUP = 0x0002
+[Win32.Keyboard]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero)
+[Win32.Keyboard]::keybd_event(0x48, 0, 0, [UIntPtr]::Zero)
+[Win32.Keyboard]::keybd_event(0x48, 0, $KEYUP, [UIntPtr]::Zero)
+[Win32.Keyboard]::keybd_event(0x5B, 0, $KEYUP, [UIntPtr]::Zero)
+"#;
+
+    Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|err| format!("无法打开 Windows 语音输入: {err}"))?;
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn open_windows_voice_input() -> Result<(), String> {
+    Err("当前系统不支持 Windows 语音输入".to_string())
+}
+
 fn run_startup_check(app: &tauri::AppHandle) -> Result<(), String> {
     let date = today();
     let conn = db::open_database(&database_path()?).map_err(|err| err.to_string())?;
@@ -130,7 +166,8 @@ pub fn run() {
             get_app_state,
             parse_todo_text,
             save_preview,
-            suppress_today
+            suppress_today,
+            open_voice_input
         ])
         .setup(|app| {
             let is_startup_check = std::env::args().any(|arg| arg == "--startup-check");

@@ -17,3 +17,7 @@ export function savePreview(entries: PreviewEntry[]): Promise<Todo[]> {
 export function suppressToday(): Promise<void> {
   return invoke<void>("suppress_today");
 }
+
+export function openVoiceInput(): Promise<void> {
+  return invoke<void>("open_voice_input");
+}

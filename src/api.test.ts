@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import {
   getAppState,
+  openVoiceInput,
   parseTodoText,
   savePreview,
   suppressToday,
@@ -65,5 +66,13 @@ describe("api", () => {
     await suppressToday();
 
     expect(invokeMock).toHaveBeenCalledWith("suppress_today");
+  });
+
+  it("opens Windows voice input through the Tauri command", async () => {
+    invokeMock.mockResolvedValueOnce(undefined);
+
+    await openVoiceInput();
+
+    expect(invokeMock).toHaveBeenCalledWith("open_voice_input");
   });
 });
