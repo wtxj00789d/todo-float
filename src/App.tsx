@@ -28,6 +28,7 @@ export default function App() {
 
     try {
       await suppressToday();
+      await getCurrentWindow().minimize();
       setError(null);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : String(reason));

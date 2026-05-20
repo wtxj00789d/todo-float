@@ -6,12 +6,14 @@ import App from "./App";
 import { getAppState, openVoiceInput, parseTodoText, savePreview, suppressToday } from "./api";
 import type { AppState, PreviewEntry, Todo } from "./types";
 
-const { startDraggingMock } = vi.hoisted(() => ({
+const { minimizeMock, startDraggingMock } = vi.hoisted(() => ({
+  minimizeMock: vi.fn(),
   startDraggingMock: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
+    minimize: minimizeMock,
     startDragging: startDraggingMock,
   }),
 }));
@@ -102,10 +104,11 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
   });
 
-  it("suppresses today's popup from the loaded state", async () => {
+  it("suppresses today's popup and minimizes the window from the loaded state", async () => {
     const user = userEvent.setup();
     getAppStateMock.mockResolvedValueOnce({ today: "2026-05-19", todos: [] });
     suppressTodayMock.mockResolvedValueOnce();
+    minimizeMock.mockResolvedValueOnce(undefined);
 
     render(<App />);
 
@@ -113,6 +116,7 @@ describe("App", () => {
     await user.click(suppressButton);
 
     expect(suppressTodayMock).toHaveBeenCalledOnce();
+    expect(minimizeMock).toHaveBeenCalledOnce();
   });
 
   it("starts native window dragging from the header", async () => {
