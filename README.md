@@ -8,7 +8,7 @@ Todo Float 是一个轻量级 Windows 桌面待办浮窗。它的目标很窄：
 - 每个自然日期只弹出一次；跨到第二天后会按新日期重新判断。
 - 自然语言输入会解析成事项和日期，当前支持日期级 todo，并保留 `due_time` 字段作为后续时间提醒能力。
 - 日期规则按本机日期计算，并采用周一为一周起始、周日为一周结束。
-- 主模型为 OpenRouter `z-ai/glm-4.5-air`，备用模型为智谱直连 `glm-4.7-flash`。
+- 主模型为 OpenRouter `z-ai/glm-4.5-air`，备用模型为智谱直连 `glm-4.7-flash`。默认固定这两个模型，是因为它们都有免费可用额度或免费档，注册账号并开通 API 后，把 API Key 填进配置即可使用。
 
 ## 安装
 
@@ -64,6 +64,8 @@ model = "glm-4.7-flash"
 
 - `config.toml` 不会提交到 git。
 - 如果主模型 `api_key` 为空，点击“解析”时会提示补配置。
+- OpenRouter API Key 教程：[OpenRouter Quickstart](https://openrouter.ai/docs/quickstart)。
+- 智谱 API Key 教程：[智谱 AI 使用概述](https://docs.bigmodel.cn/cn/api/introduction)。
 - 可以用环境变量 `TODO_FLOAT_CONFIG` 指定配置文件路径。
 - 数据库默认放在 exe 同目录，文件名为 `todo-float.sqlite3`；也可以用 `TODO_FLOAT_DB` 指定路径。
 
